@@ -27,11 +27,12 @@ ARG DOCFILES=0
 ARG SRCFILES=0
 COPY texlive.installation.profile .
 RUN sed -i \
-  -re 's|(selected_scheme\ scheme-)full|\1small|' \
-  -re 's|(tlpdbopt_autobackup\ )0|\11|' \
-  -re 's|(tlpdbopt_install_docfiles\ )0|\12|' \
-  -re 's|(tlpdbopt_install_srcfiles\ )0|\13|' \
-  texlive.installation.profile
+  -re "s|(selected_scheme\ scheme-)full|\1"${TEXLIVE_SCHEME}"|" \
+  -re "s|(tlpdbopt_autobackup\ )0|\1"${AUTOBACKUP}"|" \
+  -re "s|(tlpdbopt_install_docfiles\ )0|\1"${AUTOBACKUP}"|" \
+  -re "s|(tlpdbopt_install_srcfiles\ )0|\1"${AUTOBACKUP}"|" \
+  texlive.installation.profile \
+  && cat texlive.installation.profile
 
 # Download and install the installer
 ARG TEXLIVE_REPO=https://mirror.ctan.org/systems/texlive/tlnet
