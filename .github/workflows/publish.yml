@@ -73,6 +73,12 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v3
         with:
+          build-args: |
+            TEXLIVE_SCHEME=full
+            TEXLIVE_REPO=https://mirror.ctan.org/systems/texlive/tlnet
+            AUTOBACKUP=0
+            DOCFILES=0
+            SRCFILES=0
           context: .
           file: Dockerfile
           labels: ${{ steps.meta.outputs.labels }}
