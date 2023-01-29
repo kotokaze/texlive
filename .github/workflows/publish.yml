@@ -1,18 +1,18 @@
 name: Docker
 
 on:
-  schedule:
-    - cron: '42 12 * * *'
+  workflow_dispatch:
   push:
-    branches: [ "master" ]
     tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ "master" ]
+
 env:
-  # Registry to push the image to
-  REGISTRY: ${{ vars.REGISTRY }}
-  # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: ${{ vars.REGISTRY }}
+  TEXLIVE_SCHEME: ${{ vars.TEXLIVE_SCHEME }}
+  TEXLIVE_REPO: ${{ vars.TEXLIVE_REPO }}
+  AUTOBACKUP: ${{ vars.AUTOBACKUP }}
+  DOCFILES: ${{ vars.DOCFILES }}
+  SRCFILES: ${{ vars.SRCFILES }}
 
 jobs:
   build:
@@ -74,11 +74,11 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           build-args: |
-            TEXLIVE_SCHEME=full
-            TEXLIVE_REPO=https://mirror.ctan.org/systems/texlive/tlnet
-            AUTOBACKUP=0
-            DOCFILES=0
-            SRCFILES=0
+            TEXLIVE_SCHEME=${{ env.TEXLIVE_SCHEME }}
+            TEXLIVE_REPO=${{ env.TEXLIVE_REPO }}
+            AUTOBACKUP=${{ env.AUTOBACKUP }}
+            DOCFILES=${{ env.DOCFILES }}
+            SRCFILES=${{ env.SRCFILES }}
           context: .
           file: Dockerfile
           labels: ${{ steps.meta.outputs.labels }}
