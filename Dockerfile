@@ -29,8 +29,8 @@ COPY texlive.installation.profile .
 RUN sed -i \
   -re "s|(selected_scheme\ scheme-)full|\1"${TEXLIVE_SCHEME}"|" \
   -re "s|(tlpdbopt_autobackup\ )0|\1"${AUTOBACKUP}"|" \
-  -re "s|(tlpdbopt_install_docfiles\ )0|\1"${AUTOBACKUP}"|" \
-  -re "s|(tlpdbopt_install_srcfiles\ )0|\1"${AUTOBACKUP}"|" \
+  -re "s|(tlpdbopt_install_docfiles\ )0|\1"${DOCFILES}"|" \
+  -re "s|(tlpdbopt_install_srcfiles\ )0|\1"${SRCFILES}"|" \
   texlive.installation.profile \
   && cat texlive.installation.profile
 
