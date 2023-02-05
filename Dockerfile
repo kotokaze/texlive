@@ -21,7 +21,7 @@ FROM base as builder
 WORKDIR /tmp
 
 # Create profile
-ARG TEXLIVE_SCHEME=full
+ARG SCHEME=full
 ARG AUTOBACKUP=0
 ARG DOCFILES=0
 ARG SRCFILES=0
@@ -35,11 +35,11 @@ RUN sed -i \
   && cat texlive.installation.profile
 
 # Download and install the installer
-ARG TEXLIVE_REPO=https://mirror.ctan.org/systems/texlive/tlnet
+ARG REPO=https://mirror.ctan.org/systems/texlive/tlnet
 RUN curl -sSLO https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz \
   && zcat install-tl-unx.tar.gz | tar -xvf - \
   && cd install-tl-2* \
-  && perl ./install-tl -profile ../texlive.installation.profile --no-interaction  --repository=${TEXLIVE_REPO} \
+  && perl ./install-tl -profile ../texlive.installation.profile --no-interaction --repository ${REPO} \
   && cd .. \
   && rm -rf ./install-tl-2*
 

@@ -8,8 +8,8 @@ on:
 env:
   IMAGE_NAME: ${{ github.repository }}
   REGISTRY: ${{ vars.REGISTRY }}
-  TEXLIVE_SCHEME: ${{ vars.TEXLIVE_SCHEME }}
-  TEXLIVE_REPO: ${{ vars.TEXLIVE_REPO }}
+  SCHEME: ${{ vars.SCHEME }}
+  REPO: ${{ vars.REPO }}
   AUTOBACKUP: ${{ vars.AUTOBACKUP }}
   DOCFILES: ${{ vars.DOCFILES }}
   SRCFILES: ${{ vars.SRCFILES }}
@@ -74,8 +74,8 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           build-args: |
-            TEXLIVE_SCHEME=${{ env.TEXLIVE_SCHEME }}
-            TEXLIVE_REPO=${{ env.TEXLIVE_REPO }}
+            SCHEME=${{ env.SCHEME }}
+            REPO=${{ env.REPO }}
             AUTOBACKUP=${{ env.AUTOBACKUP }}
             DOCFILES=${{ env.DOCFILES }}
             SRCFILES=${{ env.SRCFILES }}
