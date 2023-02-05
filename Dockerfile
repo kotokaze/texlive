@@ -65,9 +65,11 @@ RUN apt update && apt install -y --no-install-recommends equivs \
   && apt clean \
   && rm -rf /var/cache/apt/
 
-# Add to path and install packages
+# Add to path and generate cache
 RUN $(find /opt/texlive -name tlmgr) path add \
-  && tlmgr install \
-  latexmk
+  && (luaotfload-tool -u || true) \
+  && (mtxrun --generate || true) \
+  && (cp "$(find /usr/local/texlive -name texlive-fontconfig.conf)" /etc/fonts/conf.d/09-texlive-fonts.conf || true) \
+  && fc-cache -fsv
 
 ENTRYPOINT [ "/bin/bash" ]
