@@ -10,7 +10,6 @@ env:
   REGISTRY: ${{ vars.REGISTRY }}
   SCHEME: ${{ vars.SCHEME }}
   REPO: ${{ vars.REPO }}
-  AUTOBACKUP: ${{ vars.AUTOBACKUP }}
   DOCFILES: ${{ vars.DOCFILES }}
   SRCFILES: ${{ vars.SRCFILES }}
 
@@ -76,7 +75,6 @@ jobs:
           build-args: |
             SCHEME=${{ env.SCHEME }}
             REPO=${{ env.REPO }}
-            AUTOBACKUP=${{ env.AUTOBACKUP }}
             DOCFILES=${{ env.DOCFILES }}
             SRCFILES=${{ env.SRCFILES }}
           context: .

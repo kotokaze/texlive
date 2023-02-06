@@ -2,9 +2,16 @@
 ARG VARIANT=bullseye
 FROM buildpack-deps:${VARIANT}-curl as base
 
+ARG SCHEME=full
+ARG DOCFILES=0
+ARG SRCFILES=0
+
 ENV \
   DEBIAN_FRONTEND=noninteractive \
-  TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1
+  SCHEME=${SCHEME} \
+  DOCFILES=${DOCFILES} \
+  SRCFILES=${SRCFILES} \
+  NOPERLDOC=1
 
 # Install dependencies
 RUN apt update && apt install -qy --no-install-recommends \
@@ -22,15 +29,14 @@ RUN apt update && apt install -qy --no-install-recommends \
 FROM base as builder
 WORKDIR /tmp
 
+ENV \
+  TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1 \
+  TEXLIVE_INSTALL_NO_DISKCHECK=1
+
 # Create profile
-ARG SCHEME=full
-ARG AUTOBACKUP=0
-ARG DOCFILES=0
-ARG SRCFILES=0
 COPY texlive.installation.profile .
 RUN sed -i \
-  -re "s|(selected_scheme\ scheme-)full|\1"${TEXLIVE_SCHEME}"|" \
-  -re "s|(tlpdbopt_autobackup\ )0|\1"${AUTOBACKUP}"|" \
+  -re "s|(selected_scheme\ scheme-)full|\1"${SCHEME}"|" \
   -re "s|(tlpdbopt_install_docfiles\ )0|\1"${DOCFILES}"|" \
   -re "s|(tlpdbopt_install_srcfiles\ )0|\1"${SRCFILES}"|" \
   texlive.installation.profile \
