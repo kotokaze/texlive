@@ -1,20 +1,22 @@
 ### base stage
-FROM mcr.microsoft.com/vscode/devcontainers/base:bullseye as base
+ARG VARIANT=bullseye
+FROM buildpack-deps:${VARIANT}-curl as base
 
 ENV \
   DEBIAN_FRONTEND=noninteractive \
   TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1
 
 # Install dependencies
-RUN apt update && apt install -y --no-install-recommends \
-  fontconfig default-jre libgetopt-long-descriptive-perl \
+RUN apt update && apt install -qy --no-install-recommends \
+  git unzip \
+  make fontconfig perl default-jre libgetopt-long-descriptive-perl libdigest-perl-md5-perl libncurses5 libncurses6 \
   libunicode-linebreak-perl libfile-homedir-perl libyaml-tiny-perl \
   ghostscript \
   libsm6 \
-  python3-pygments python-is-python3 \
+  python3 python3-pygments python-is-python3 \
   gnuplot-nox \
-  && rm -rf /var/lib/apt/lists/*
-
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /var/cache/apt/
 
 ### builder stage
 FROM base as builder
