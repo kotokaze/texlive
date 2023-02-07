@@ -28,6 +28,30 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Restore cached repository 📦
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/texlive/
+          key: rsync-${{ env.REPO }}
+          restore-keys: rsync-
+
+      - name: Check if rsync is installed
+        id: check_rsync
+        shell: bash
+        run: |
+          [ -x "$(command -v rsync)" ] && echo "installed=true" >> ${GITHUB_OUTPUT} || echo "installed=false" >> ${GITHUB_OUTPUT}
+
+      - name: Install rsync if not present 📡
+        if: ${{ !steps.check_rsync.outputs.installed }}
+        shell: bash
+        run: sudo apt update && sudo apt install -qy rsync && rsync --version
+        env:
+          DEBIAN_FRONTEND: noninteractive
+
+      - name: rsync 📁
+        shell: bash
+        run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
+
       # Add support for more platforms with QEMU
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU 💻
@@ -37,12 +61,6 @@ jobs:
       # https://github.com/docker/setup-buildx-action
       - name: Setup buildx 🔧
         uses: docker/setup-buildx-action@v2
-
-      - name: Get repo with rsync 📦
-        uses: ./.github/actions/rsync
-        with:
-          src: ${{ env.REPO }}
-          dest: ${{ github.workspace }}/texlive/
 
       # Extract metadata (tags, labels)
       # https://github.com/docker/metadata-action
