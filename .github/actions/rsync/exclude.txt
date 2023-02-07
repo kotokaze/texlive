@@ -1,0 +1,13 @@
+**/*.armhf-*
+**/*.i386-*
+
+**/*windows*
+
+**/*-freebsd.*
+**/*-netbsd.*
+**/*-darwin.*
+**/*.win32.*
+**/*-cygwin.*
+**/*-darwinlegacy.*
+**/*-linuxmusl.*
+**/*-solaris.*

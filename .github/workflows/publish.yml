@@ -38,6 +38,12 @@ jobs:
       - name: Setup buildx 🔧
         uses: docker/setup-buildx-action@v2
 
+      - name: Get repo with rsync 📦
+        uses: ./.github/actions/rsync-ctan
+        with:
+          src: ${{ env.REPO }}
+          dest: ${{ github.workspace }}/texlive/
+
       # Extract metadata (tags, labels)
       # https://github.com/docker/metadata-action
       - name: Extract metadata 🔍

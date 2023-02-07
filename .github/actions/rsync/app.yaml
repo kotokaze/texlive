@@ -1,0 +1,36 @@
+name: rsync
+
+inputs:
+  src:
+    description: Source directory
+    required: true
+  dest:
+    description: Destination directory
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check if rsync is installed
+      id: check_rsync
+      shell: bash
+      run: |
+        [ -x "$(command -v rsync)" ] && echo "installed=true" >> ${GITHUB_OUTPUT} || echo "installed=false" >> ${GITHUB_OUTPUT}
+
+    - name: Restore cached repository
+      uses: actions/cache@v3
+      with:
+        path: ${{ inputs.src }}
+        key: rsync-${{ inputs.src }}
+        restore-keys: rsync-
+
+    - name: Install rsync if not present
+      if: ${{ ! steps.check_rsync.outputs.installed }}
+      shell: bash
+      run: apt update && apt install -qy rsync && rsync --version
+      env:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: rsync
+      shell: bash
+      run: ${{ github.action_path }}/rsync.sh ${{ inputs.src }} ${{ inputs.dest }} ${{ github.action_path }}/exclude.txt
