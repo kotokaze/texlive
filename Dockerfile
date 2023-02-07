@@ -42,33 +42,35 @@ RUN sed -i \
   texlive.installation.profile \
   && cat texlive.installation.profile
 
-# Download and install the installer
-ARG REPO=https://mirror.ctan.org/systems/texlive/tlnet
-RUN curl -sSLO https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz \
-  && zcat install-tl-unx.tar.gz | tar -xvf - \
-  && cd install-tl-2* \
-  && perl ./install-tl -profile ../texlive.installation.profile --no-interaction --repository ${REPO} \
-  && cd .. \
-  && rm -rf ./install-tl-2*
-
+# Compile TeX Live (Use local repo if available)
+COPY texliv[e] texlive/
+RUN if [ ! -d texlive ] \
+  ;then \
+  echo "Using online installer" \
+  && mkdir texlive  \
+  && curl -sSLO https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz \
+  && zcat install-tl-unx.tar.gz | tar -vx --strip-components=1 -C texlive \
+  ;fi \
+  && cd texlive \
+  && perl ./install-tl -profile ../texlive.installation.profile --no-interaction
 
 ### final stage
 FROM base
 WORKDIR /tmp
 
 # Install
-COPY --from=builder /opt/texlive /opt/texlive
+COPY --from=builder /opt/texlive/ /opt/texlive/
 
-# download and install equivs file for dummy package
-RUN apt update && apt install -y --no-install-recommends equivs \
+# Create dummy package with equivs and generate cache
+RUN apt update && apt install -qy --no-install-recommends equivs \
   && curl https://tug.org/texlive/files/debian-equivs-2022-ex.txt -o texlive-local \
   && sed -i -e "s/2022/9999/" -e "/Depends: freeglut3/d" texlive-local \
   && equivs-build texlive-local \
   && dpkg -i texlive-local_9999.99999999-1_all.deb \
-  && apt install -y --no-install-recommends \
+  && apt install -qy --no-install-recommends \
   && rm -rf ./*texlive* \
-  && apt remove -y --purge equivs \
-  && apt autoremove -y --purge \
+  && apt purge -qy equivs \
+  && apt autoremove -qy --purge \
   && rm -rf /var/lib/apt/lists/* \
   && apt clean \
   && rm -rf /var/cache/apt/
@@ -80,4 +82,5 @@ RUN $(find /opt/texlive -name tlmgr) path add \
   && (cp "$(find /usr/local/texlive -name texlive-fontconfig.conf)" /etc/fonts/conf.d/09-texlive-fonts.conf || true) \
   && fc-cache -fsv
 
+WORKDIR /root
 ENTRYPOINT [ "/bin/bash" ]
