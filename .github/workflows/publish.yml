@@ -54,7 +54,7 @@ jobs:
           bake-target: docker-metadata-action
           flavor: |
             latest=auto
-            prefix=bullseye-full-,onlatest-false
+            prefix=bullseye-full-,onlatest=false
           tags: |
             type=schedule,pattern=nightly
             type=semver,pattern=v{{version}}
