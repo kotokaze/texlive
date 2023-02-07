@@ -39,7 +39,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Get repo with rsync 📦
-        uses: ./.github/actions/rsync-ctan
+        uses: ./.github/actions/rsync
         with:
           src: ${{ env.REPO }}
           dest: ${{ github.workspace }}/texlive/
