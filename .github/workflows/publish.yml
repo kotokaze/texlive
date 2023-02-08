@@ -28,12 +28,17 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Restore cached repository
+      # https://github.com/actions/cache/tree/main/restore
       - name: Restore cached repository 📦
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ github.workspace }}/texlive/
-          key: rsync-${{ env.REPO }}-
-          restore-keys: rsync-
+          key: rsync-${{ env.REPO }}-${{ github.sha }}
+          restore-keys: |
+            rsync-${{ env.REPO }}-
+            rsync-
+          fail-on-cache-miss: false
 
       - name: Check if rsync is installed
         id: check_rsync
@@ -51,6 +56,14 @@ jobs:
       - name: rsync 📁
         shell: bash
         run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
+
+      # Save repository to cache
+      # https://github.com/actions/cache/tree/main/save
+      - name: Save repository to cache 💾
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ github.workspace }}/texlive/
+          key: rsync-${{ env.REPO }}-${{ github.sha }}
 
       # Add support for more platforms with QEMU
       # https://github.com/docker/setup-qemu-action
