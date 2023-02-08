@@ -40,19 +40,6 @@ jobs:
             rsync-
           fail-on-cache-miss: false
 
-      - name: Check if rsync is installed
-        id: check_rsync
-        shell: bash
-        run: |
-          [ -x "$(command -v rsync)" ] && echo "installed=true" >> ${GITHUB_OUTPUT} || echo "installed=false" >> ${GITHUB_OUTPUT}
-
-      - name: Install rsync if not present 📡
-        if: ${{ !steps.check_rsync.outputs.installed }}
-        shell: bash
-        run: sudo apt update && sudo apt install -qy rsync && rsync --version
-        env:
-          DEBIAN_FRONTEND: noninteractive
-
       - name: rsync 📁
         shell: bash
         run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
