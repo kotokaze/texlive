@@ -34,10 +34,8 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ${{ github.workspace }}/texlive/
-          key: rsync-${{ env.REPO }}-${{ github.sha }}
-          restore-keys: |
-            rsync-${{ env.REPO }}-
-            rsync-
+          key: rsync-${{ github.sha }}
+          restore-keys: rsync-
           fail-on-cache-miss: false
 
       - name: rsync 📁
@@ -50,7 +48,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: ${{ github.workspace }}/texlive/
-          key: rsync-${{ env.REPO }}-${{ github.sha }}
+          key: rsync-${{ github.sha }}
 
       # Get the release version of the repository
       - name: Get TeX Live release version
