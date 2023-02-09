@@ -59,7 +59,7 @@ FROM base
 WORKDIR /tmp
 
 # Install
-COPY --from=builder /opt/texlive/ /opt/texlive/
+COPY --from=builder /opt/texlive /opt/texlive/
 
 # Create dummy package with equivs and generate cache
 RUN apt update && apt install -qy --no-install-recommends equivs \

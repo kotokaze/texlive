@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: '0 3 * * 0,3,6'
   workflow_dispatch:
+  pull_request:
+    branches: [ 'master' ]
   push:
     tags: [ 'v*' ]
 
@@ -53,6 +55,12 @@ jobs:
           path: ${{ github.workspace }}/texlive/
           key: rsync-${{ env.REPO }}-${{ github.sha }}
 
+      # Get the release version of the repository
+      - name: Get TeX Live release version
+        id: tl-release
+        shell: bash
+        run: echo "number=$(find ${{ github.workspace }}/texlive/ -name 'TEXLIVE_*' -print0 | sed -e s/[^0-9]//g)" >> ${GITHUB_OUTPUT}
+
       # Add support for more platforms with QEMU
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU 💻
@@ -73,7 +81,7 @@ jobs:
           bake-target: docker-metadata-action
           flavor: |
             latest=auto
-            prefix=bullseye-full-,onlatest=false
+            prefix=TL${{ steps.tl-release.outputs.number }}-bullseye-full-,onlatest=false
           tags: |
             type=schedule,pattern=nightly
             type=semver,pattern=v{{version}}
@@ -102,22 +110,11 @@ jobs:
 
       # Build Docker image with Bake
       # https://github.com/docker/bake-action
-      - name: Build only 💡
-        uses: docker/bake-action@v2
-        if: ${{ github.event_name == 'pull_request' }}
-        with:
-          load: true
-          files: docker-bake.hcl,docker-bake.override.json
-          set: |
-            build.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-
-      - name: Build and push Docker image 🐳
-        if: ${{ github.event_name != 'pull_request' }}
+      - name: Build / Push Docker image 🐳
         uses: docker/bake-action@v2
         with:
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           files: docker-bake.hcl,docker-bake.override.json
           set: |
-            *.cache-to=type=inline
-            build.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-            build.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
