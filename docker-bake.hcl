@@ -10,6 +10,10 @@ target "build" {
     "linux/amd64",
     "linux/arm64",
   ]
+  attest = [
+    "type=sbom",
+    "type=provenance,mode=max",
+  ]
 }
 
 target "bullseye-full" {
