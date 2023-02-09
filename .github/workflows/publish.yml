@@ -13,10 +13,7 @@ env:
   BUILDKIT_PROGRESS: plain
   REGISTRY: ${{ vars.REGISTRY }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME }}
-  SCHEME: ${{ vars.SCHEME }}
   REPO: ${{ vars.REPO }}
-  DOCFILES: ${{ vars.DOCFILES }}
-  SRCFILES: ${{ vars.SRCFILES }}
 
 jobs:
   build:
