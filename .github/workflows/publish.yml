@@ -8,6 +8,7 @@ on:
     tags: [ 'v*' ]
 
 env:
+  BUILDKIT_PROGRESS: plain
   REGISTRY: ${{ vars.REGISTRY }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME }}
   SCHEME: ${{ vars.SCHEME }}
