@@ -73,7 +73,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          bake-target: docker-metadata-action
+          bake-target: metadata-action-bullseye-full
           flavor: |
             latest=auto
             prefix=TL${{ steps.tl-release.outputs.number }}-bullseye-full-,onlatest=false
@@ -114,9 +114,9 @@ jobs:
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
-            build.args.RELEASE=${{ steps.tl-release.outputs.number }}
-            build.output=type=tar,dest=build
-            build.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:testing
+            pkg.args.RELEASE=${{ steps.tl-release.outputs.number }}
+            pkg.output=type=tar,dest=build/
+            pkg.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:testing
 
       # Upload artifacts
       # https://github.com/actions/upload-artifact
