@@ -25,6 +25,7 @@ RUN apt update && apt install -qy --no-install-recommends \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /var/cache/apt/
 
+
 ### builder stage
 FROM base as builder
 WORKDIR /tmp
@@ -54,6 +55,7 @@ RUN if [ ! -d texlive ] \
   && cd texlive \
   && perl ./install-tl -profile ../texlive.installation.profile --no-interaction
 
+
 ### final stage
 FROM base
 WORKDIR /tmp
@@ -62,10 +64,11 @@ WORKDIR /tmp
 COPY --from=builder /opt/texlive /opt/texlive/
 
 # Create dummy package with equivs and generate cache
+ARG RELEASE
 RUN apt update && apt install -qy --no-install-recommends equivs \
-  && curl https://tug.org/texlive/files/debian-equivs-2022-ex.txt -o texlive-local \
-  && sed -i -e "s/2022/9999/" -e "/Depends: freeglut3/d" texlive-local \
-  && equivs-build texlive-local \
+  && curl -sSL https://tug.org/texlive/files/debian-equivs-${RELEASE}-ex.txt  \
+  | sed -e "/^Version:\ /s/"${RELEASE}"/9999/" -e "/^Depends:\ freeglut3$/d" \
+  | equivs-build - \
   && dpkg -i texlive-local_9999.99999999-1_all.deb \
   && apt install -qy --no-install-recommends \
   && rm -rf ./*texlive* \

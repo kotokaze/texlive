@@ -38,7 +38,7 @@ jobs:
           restore-keys: rsync-
           fail-on-cache-miss: false
 
-      - name: rsync 📁
+      - name: Run rsync 📁
         shell: bash
         run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
 
@@ -51,7 +51,7 @@ jobs:
           key: rsync-${{ github.sha }}
 
       # Get the release version of the repository
-      - name: Get TeX Live release version
+      - name: Get TeX Live release version 🔖
         id: tl-release
         shell: bash
         run: echo "number=$(find ${{ github.workspace }}/texlive/ -name 'TEXLIVE_*' -print0 | sed -e s/[^0-9]//g)" >> ${GITHUB_OUTPUT}
@@ -114,3 +114,14 @@ jobs:
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
+            build.args.RELEASE=${{ steps.tl-release.outputs.number }}
+            build.output=type=tar,dest=build
+            build.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:testing
+
+      # Upload artifacts
+      # https://github.com/actions/upload-artifact
+      - name: Upload artifacts 📚
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image
+          path: build/
