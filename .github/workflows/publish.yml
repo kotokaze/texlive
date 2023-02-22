@@ -115,6 +115,7 @@ jobs:
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
+            *.output=type=local,dest=build/
 
       # Upload artifacts
       # https://github.com/actions/upload-artifact
