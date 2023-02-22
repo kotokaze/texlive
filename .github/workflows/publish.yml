@@ -83,7 +83,8 @@ jobs:
             type=semver,pattern=v{{version}}
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-            type=sha,prefix=,format=short
+            type=ref,event=pr,prefix=TL${{ steps.tl-release.outputs.number }}-bullseye-full-pr-
+            type=sha,prefix=TL${{ steps.tl-release.outputs.number }}-bullseye-full-,format=short
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.clone_url }}
 
@@ -109,13 +110,11 @@ jobs:
         uses: docker/bake-action@v2
         with:
           files: docker-bake.hcl,docker-bake.override.json
+          push: ${{ github.event_name != 'pull_request' }}
           set: |
+            *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
-            pkg.args.RELEASE=${{ steps.tl-release.outputs.number }}
-            pkg.output=type=tar,dest=build/
-            pkg.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:testing
-            bullseye-*.output=type=image,push=${{ github.event_name != 'pull_request' }}
 
       # Upload artifacts
       # https://github.com/actions/upload-artifact
