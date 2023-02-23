@@ -75,6 +75,14 @@ jobs:
       contents: read
 
     steps:
+      # Get platform architecture
+      - name: Get architecture 🖥️
+        id: get-arch
+        shell: bash
+        run: |
+          platform=${{ matrix.platform }}
+          echo "arch=${platform#*\/}" >> ${GITHUB_OUTPUT}
+
       # Checkout the repository
       - name: Checkout  🎯
         uses: actions/checkout@v3
@@ -153,8 +161,8 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           set: |
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
+            *.cache-from=type=gha,scope=${{ steps.get-arch.outputs.arch }}
+            *.cache-to=type=gha,scope=${{ steps.get-arch.outputs.arch }},mode=max
             *.output=type=oci,dest=build/texlive.oci
             *.platform=${{ matrix.platform }}
 
@@ -163,7 +171,7 @@ jobs:
       - name: Upload artifacts 📚
         uses: actions/upload-artifact@v3
         with:
-          name: texlive-${{ matrix.platform }}
+          name: texlive-${{ steps.get-arch.outputs.arch }}
           path: |
             build/
             !build/.gitkeep
