@@ -16,8 +16,39 @@ env:
   REPO: ${{ vars.REPO }}
 
 jobs:
+  pre-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+      # Checkout the repository
+      - name: Checkout  🎯
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      # Get the platforms from the docker-bake.hcl file
+      - name: Get platforms 📦
+        id: set-matrix
+        shell: bash
+        run: |
+          echo "matrix=$(docker buildx bake _platforms --print | jq -cr '.target._platforms.platforms')" >> ${GITHUB_OUTPUT}
+
+      # Show the platforms
+      - name: Show platforms 📝
+        shell: bash
+        run: echo ${{ steps.set-matrix.outputs.matrix }}
+
   build:
     runs-on: ubuntu-latest
+    needs: pre-build
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJson(needs.pre-build.outputs.matrix) }}
     permissions:
       contents: read
 
@@ -115,12 +146,15 @@ jobs:
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
-            *.output=type=local,dest=build/
+            *.output=type=oci,dest=build/texlive.oci
+            *.platform=${{ matrix.platform }}
 
       # Upload artifacts
       # https://github.com/actions/upload-artifact
       - name: Upload artifacts 📚
         uses: actions/upload-artifact@v3
         with:
-          name: docker-image
-          path: build/
+          name: texlive-${{ matrix.platform }}
+          path: |
+            build/
+            !build/.gitkeep

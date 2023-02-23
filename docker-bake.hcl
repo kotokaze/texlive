@@ -3,6 +3,13 @@ group "default" { targets = ["bullseye-full"] }
 
 target "metadata-action-bullseye-full" {}
 
+target "_platforms" {
+  platforms = [
+    "linux/amd64",
+    "linux/arm64",
+  ]
+}
+
 target "_base" {
   args = {
     "BUILDKIT_SBOM_SCAN_CONTEXT" = "true",
@@ -17,10 +24,6 @@ target "_base" {
   ]
   context = "."
   dockerfile = "Dockerfile"
-  platforms = [
-    "linux/amd64",
-    "linux/arm64",
-  ]
 }
 
 target "bullseye-full" {
