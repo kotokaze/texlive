@@ -161,8 +161,8 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           set: |
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
+            *.cache-to=type=gha,mode=min,scope=${{ steps.get-arch.outputs.arch }}
             *.cache-from=type=gha,scope=${{ steps.get-arch.outputs.arch }}
-            *.cache-to=type=gha,scope=${{ steps.get-arch.outputs.arch }},mode=max
             *.output=type=oci,dest=texlive.oci
             *.platform=${{ matrix.platform }}
 
