@@ -42,6 +42,28 @@ jobs:
         shell: bash
         run: echo ${{ steps.set-matrix.outputs.matrix }}
 
+      # Restore cached repository
+      # https://github.com/actions/cache/tree/main/restore
+      - name: Restore cached repository 📦
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ github.workspace }}/texlive/
+          key: rsync-${{ github.sha }}
+          restore-keys: rsync-
+          fail-on-cache-miss: false
+
+      - name: Run rsync 📁
+        shell: bash
+        run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
+
+      # Save repository to cache
+      # https://github.com/actions/cache/tree/main/save
+      - name: Save repository to cache 💾
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ github.workspace }}/texlive/
+          key: rsync-${{ github.sha }}
+
   build:
     runs-on: ubuntu-latest
     needs: pre-build
@@ -66,20 +88,7 @@ jobs:
         with:
           path: ${{ github.workspace }}/texlive/
           key: rsync-${{ github.sha }}
-          restore-keys: rsync-
-          fail-on-cache-miss: false
-
-      - name: Run rsync 📁
-        shell: bash
-        run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
-
-      # Save repository to cache
-      # https://github.com/actions/cache/tree/main/save
-      - name: Save repository to cache 💾
-        uses: actions/cache/save@v3
-        with:
-          path: ${{ github.workspace }}/texlive/
-          key: rsync-${{ github.sha }}
+          fail-on-cache-miss: true
 
       # Get the release version of the repository
       - name: Get TeX Live release version 🔖
