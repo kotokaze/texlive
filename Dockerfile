@@ -1,6 +1,7 @@
 ### base stage
 ARG VARIANT=bullseye
-FROM buildpack-deps:${VARIANT}-curl as base
+FROM buildpack-deps:${VARIANT}-curl
+WORKDIR /tmp
 
 ARG SCHEME=full
 ARG DOCFILES=0
@@ -12,7 +13,9 @@ ENV \
   SCHEME=${SCHEME} \
   DOCFILES=${DOCFILES} \
   SRCFILES=${SRCFILES} \
-  NOPERLDOC=1
+  NOPERLDOC=1 \
+  TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1 \
+  TEXLIVE_INSTALL_NO_DISKCHECK=1
 
 # Install dependencies
 RUN apt update && apt install -qy --no-install-recommends \
@@ -23,17 +26,9 @@ RUN apt update && apt install -qy --no-install-recommends \
   libsm6 \
   python3 python3-pygments python-is-python3 \
   gnuplot-nox \
+  equivs \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /var/cache/apt/
-
-
-### builder stage
-FROM base as builder
-WORKDIR /tmp
-
-ENV \
-  TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1 \
-  TEXLIVE_INSTALL_NO_DISKCHECK=1
 
 # Create profile
 COPY texlive.installation.profile .
@@ -54,20 +49,13 @@ RUN if [ ! -d texlive ] \
   && zcat install-tl-unx.tar.gz | tar -vx --strip-components=1 -C texlive \
   ;fi \
   && cd texlive \
-  && perl ./install-tl -profile ../texlive.installation.profile --no-interaction
-
-
-### final stage
-FROM base
-WORKDIR /tmp
-
-# Install
-COPY --from=builder /opt/texlive /opt/texlive/
+  && perl ./install-tl -profile ../texlive.installation.profile --no-interaction \
+  && cd .. \
+  && rm -rf texlive
 
 # Create dummy package with equivs and generate cache
 ARG RELEASE
-RUN apt update && apt install -qy --no-install-recommends equivs \
-  && curl -sSL https://tug.org/texlive/files/debian-equivs-${RELEASE}-ex.txt  \
+RUN curl -sSL https://tug.org/texlive/files/debian-equivs-${RELEASE}-ex.txt  \
   | sed -e "/^Version:\ /s/"${RELEASE}"/9999/" -e "/^Depends:\ freeglut3$/d" \
   | equivs-build - \
   && dpkg -i texlive-local_9999.99999999-1_all.deb \
@@ -77,10 +65,9 @@ RUN apt update && apt install -qy --no-install-recommends equivs \
   && apt autoremove -qy --purge \
   && rm -rf /var/lib/apt/lists/* \
   && apt clean \
-  && rm -rf /var/cache/apt/
-
-# Add to path and generate cache
-RUN $(find /opt/texlive -name tlmgr) path add \
+  && rm -rf /var/cache/apt/ \
+  # Add to path and generate cache
+  && $(find /opt/texlive -name tlmgr) path add \
   && (luaotfload-tool -u || true) \
   && (mtxrun --generate || true) \
   && (cp "$(find /usr/local/texlive -name texlive-fontconfig.conf)" /etc/fonts/conf.d/09-texlive-fonts.conf || true) \
