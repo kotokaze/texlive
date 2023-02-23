@@ -1,3 +1,2 @@
 /texlive/
-/build/*
-!/build/.gitkeep
+/*.oci

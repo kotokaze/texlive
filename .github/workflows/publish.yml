@@ -163,7 +163,7 @@ jobs:
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-from=type=gha,scope=${{ steps.get-arch.outputs.arch }}
             *.cache-to=type=gha,scope=${{ steps.get-arch.outputs.arch }},mode=max
-            *.output=type=oci,dest=build/texlive.oci
+            *.output=type=oci,dest=texlive.oci
             *.platform=${{ matrix.platform }}
 
       # Upload artifacts
@@ -171,7 +171,6 @@ jobs:
       - name: Upload artifacts 📚
         uses: actions/upload-artifact@v3
         with:
-          name: texlive-${{ steps.get-arch.outputs.arch }}
-          path: |
-            build/
-            !build/.gitkeep
+          name: TL${{ steps.tl-release.outputs.number }}-${{ steps.get-arch.outputs.arch }}
+          path: texlive.oci
+          if-no-files-found: error
