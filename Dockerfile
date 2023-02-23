@@ -33,9 +33,9 @@ RUN apt update && apt install -qy --no-install-recommends \
 # Create profile
 COPY texlive.installation.profile .
 RUN sed -i \
-  -re "s|(selected_scheme\ scheme-)full|\1"${SCHEME}"|" \
-  -re "s|(tlpdbopt_install_docfiles\ )0|\1"${DOCFILES}"|" \
-  -re "s|(tlpdbopt_install_srcfiles\ )0|\1"${SRCFILES}"|" \
+  -e "/^selected_scheme\ scheme-/s/full/"${SCHEME}"/" \
+  -e "/^tlpdbopt_install_docfiles\ /s/0/"${DOCFILES}"/" \
+  -e "/^tlpdbopt_install_srcfiles\ /s/0/"${SRCFILES}"/" \
   texlive.installation.profile \
   && cat texlive.installation.profile
 
