@@ -73,7 +73,7 @@ jobs:
           gh extension install actions/gh-actions-cache
 
           [ $(gh actions-cache list --key rsync- | grep ${{ github.ref }} | wc -l) -lt 2 ] && exit 0
-          gh actions-cache delete ${{ steps.restore.outputs.cache-matched-key }}
+          gh actions-cache delete ${{ steps.restore.outputs.cache-matched-key }} --confirm
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
