@@ -19,6 +19,7 @@ jobs:
   pre-build:
     runs-on: ubuntu-latest
     permissions:
+      actions: write  # See https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-a-github-actions-cache-for-a-repository-using-a-cache-id
       contents: read
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
