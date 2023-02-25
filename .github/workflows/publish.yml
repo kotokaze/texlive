@@ -164,6 +164,18 @@ jobs:
             *.output=type=oci,dest=texlive.oci
             *.platform=${{ matrix.platform }}
 
+      # Cleanup repository
+      - name: Cleanup 🧹
+        shell: bash
+        run: |
+          echo "::group::Current disk"
+          df -h
+          tree -nhL 2
+          echo "::endgroup::"
+
+          rm -rfv texlive
+          df -h
+
       # Upload artifacts
       # https://github.com/actions/upload-artifact
       - name: Upload artifacts 📚
