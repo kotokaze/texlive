@@ -13,18 +13,76 @@ env:
   BUILDKIT_PROGRESS: plain
   REGISTRY: ${{ vars.REGISTRY }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME }}
-  SCHEME: ${{ vars.SCHEME }}
   REPO: ${{ vars.REPO }}
-  DOCFILES: ${{ vars.DOCFILES }}
-  SRCFILES: ${{ vars.SRCFILES }}
 
 jobs:
+  pre-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+      # Checkout the repository
+      - name: Checkout  🎯
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      # Get the platforms from the docker-bake.hcl file
+      - name: Get platforms 📦
+        id: set-matrix
+        shell: bash
+        run: |
+          echo "matrix=$(docker buildx bake _platforms --print | jq -cr '.target._platforms.platforms')" >> ${GITHUB_OUTPUT}
+
+      # Show the platforms
+      - name: Show platforms 📝
+        shell: bash
+        run: echo ${{ steps.set-matrix.outputs.matrix }}
+
+      # Restore cached repository
+      # https://github.com/actions/cache/tree/main/restore
+      - name: Restore cached repository 📦
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ github.workspace }}/texlive/
+          key: rsync-${{ github.sha }}
+          restore-keys: rsync-
+          fail-on-cache-miss: false
+
+      - name: Run rsync 📁
+        shell: bash
+        run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
+
+      # Save repository to cache
+      # https://github.com/actions/cache/tree/main/save
+      - name: Save repository to cache 💾
+        uses: actions/cache/save@v3
+        with:
+          path: ${{ github.workspace }}/texlive/
+          key: rsync-${{ github.sha }}
+
   build:
     runs-on: ubuntu-latest
+    needs: pre-build
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJson(needs.pre-build.outputs.matrix) }}
     permissions:
       contents: read
 
     steps:
+      # Get platform architecture
+      - name: Get architecture 🖥️
+        id: get-arch
+        shell: bash
+        run: |
+          platform=${{ matrix.platform }}
+          echo "arch=${platform#*\/}" >> ${GITHUB_OUTPUT}
+
       # Checkout the repository
       - name: Checkout  🎯
         uses: actions/checkout@v3
@@ -37,26 +95,11 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ${{ github.workspace }}/texlive/
-          key: rsync-${{ env.REPO }}-${{ github.sha }}
-          restore-keys: |
-            rsync-${{ env.REPO }}-
-            rsync-
-          fail-on-cache-miss: false
-
-      - name: rsync 📁
-        shell: bash
-        run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
-
-      # Save repository to cache
-      # https://github.com/actions/cache/tree/main/save
-      - name: Save repository to cache 💾
-        uses: actions/cache/save@v3
-        with:
-          path: ${{ github.workspace }}/texlive/
-          key: rsync-${{ env.REPO }}-${{ github.sha }}
+          key: rsync-${{ github.sha }}
+          fail-on-cache-miss: true
 
       # Get the release version of the repository
-      - name: Get TeX Live release version
+      - name: Get TeX Live release version 🔖
         id: tl-release
         shell: bash
         run: echo "number=$(find ${{ github.workspace }}/texlive/ -name 'TEXLIVE_*' -print0 | sed -e s/[^0-9]//g)" >> ${GITHUB_OUTPUT}
@@ -78,17 +121,17 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          bake-target: docker-metadata-action
+          bake-target: metadata-action-bullseye-full
           flavor: |
             latest=auto
             prefix=TL${{ steps.tl-release.outputs.number }}-bullseye-full-,onlatest=false
           tags: |
             type=schedule,pattern=nightly
+            type=schedule,pattern=nightly-{{date 'YYYYMMDD' tz='Asia/Tokyo'}}
             type=semver,pattern=v{{version}}
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-            type=ref,event=pr,pattern=pr{{number}}
-            type=sha,prefix=,format=short
+            type=sha,prefix=TL${{ steps.tl-release.outputs.number }}-bullseye-full-,format=short
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.clone_url }}
 
@@ -101,7 +144,6 @@ jobs:
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into ${{ env.REGISTRY }} 📨
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
@@ -113,8 +155,32 @@ jobs:
       - name: Build / Push Docker image 🐳
         uses: docker/bake-action@v2
         with:
-          push: ${{ github.event_name != 'pull_request' }}
           files: docker-bake.hcl,docker-bake.override.json
+          push: ${{ github.event_name != 'pull_request' }}
           set: |
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
+            *.args.RELEASE=${{ steps.tl-release.outputs.number }}
+            *.cache-to=type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
+            *.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+            *.output=type=oci,dest=texlive.oci
+            *.platform=${{ matrix.platform }}
+
+      # Cleanup repository
+      - name: Cleanup 🧹
+        shell: bash
+        run: |
+          echo "::group::Current disk"
+          df -h
+          tree -nhL 2
+          echo "::endgroup::"
+
+          rm -rfv texlive
+          df -h
+
+      # Upload artifacts
+      # https://github.com/actions/upload-artifact
+      - name: Upload artifacts 📚
+        uses: actions/upload-artifact@v3
+        with:
+          name: TL${{ steps.tl-release.outputs.number }}-${{ steps.get-arch.outputs.arch }}
+          path: texlive.oci
+          if-no-files-found: error

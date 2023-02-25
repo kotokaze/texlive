@@ -1,17 +1,21 @@
 ### base stage
 ARG VARIANT=bullseye
-FROM buildpack-deps:${VARIANT}-curl as base
+FROM buildpack-deps:${VARIANT}-curl
+WORKDIR /tmp
 
 ARG SCHEME=full
 ARG DOCFILES=0
 ARG SRCFILES=0
 
 ENV \
+  LANG=C.UTF-8 LC_ALL=C.UTF-8 \
   DEBIAN_FRONTEND=noninteractive \
   SCHEME=${SCHEME} \
   DOCFILES=${DOCFILES} \
   SRCFILES=${SRCFILES} \
-  NOPERLDOC=1
+  NOPERLDOC=1 \
+  TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1 \
+  TEXLIVE_INSTALL_NO_DISKCHECK=1
 
 # Install dependencies
 RUN apt update && apt install -qy --no-install-recommends \
@@ -22,23 +26,16 @@ RUN apt update && apt install -qy --no-install-recommends \
   libsm6 \
   python3 python3-pygments python-is-python3 \
   gnuplot-nox \
+  equivs \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /var/cache/apt/
-
-### builder stage
-FROM base as builder
-WORKDIR /tmp
-
-ENV \
-  TEXLIVE_INSTALL_NO_CONTEXT_CACHE=1 \
-  TEXLIVE_INSTALL_NO_DISKCHECK=1
 
 # Create profile
 COPY texlive.installation.profile .
 RUN sed -i \
-  -re "s|(selected_scheme\ scheme-)full|\1"${SCHEME}"|" \
-  -re "s|(tlpdbopt_install_docfiles\ )0|\1"${DOCFILES}"|" \
-  -re "s|(tlpdbopt_install_srcfiles\ )0|\1"${SRCFILES}"|" \
+  -e "/^selected_scheme\ scheme-/s/full/"${SCHEME}"/" \
+  -e "/^tlpdbopt_install_docfiles\ /s/0/"${DOCFILES}"/" \
+  -e "/^tlpdbopt_install_srcfiles\ /s/0/"${SRCFILES}"/" \
   texlive.installation.profile \
   && cat texlive.installation.profile
 
@@ -52,20 +49,15 @@ RUN if [ ! -d texlive ] \
   && zcat install-tl-unx.tar.gz | tar -vx --strip-components=1 -C texlive \
   ;fi \
   && cd texlive \
-  && perl ./install-tl -profile ../texlive.installation.profile --no-interaction
-
-### final stage
-FROM base
-WORKDIR /tmp
-
-# Install
-COPY --from=builder /opt/texlive /opt/texlive/
+  && perl ./install-tl -profile ../texlive.installation.profile --no-interaction \
+  && cd .. \
+  && rm -rf texlive
 
 # Create dummy package with equivs and generate cache
-RUN apt update && apt install -qy --no-install-recommends equivs \
-  && curl https://tug.org/texlive/files/debian-equivs-2022-ex.txt -o texlive-local \
-  && sed -i -e "s/2022/9999/" -e "/Depends: freeglut3/d" texlive-local \
-  && equivs-build texlive-local \
+ARG RELEASE
+RUN curl -sSL https://tug.org/texlive/files/debian-equivs-${RELEASE}-ex.txt  \
+  | sed -e "/^Version:\ /s/"${RELEASE}"/9999/" -e "/^Depends:\ freeglut3$/d" \
+  | equivs-build - \
   && dpkg -i texlive-local_9999.99999999-1_all.deb \
   && apt install -qy --no-install-recommends \
   && rm -rf ./*texlive* \
@@ -73,10 +65,9 @@ RUN apt update && apt install -qy --no-install-recommends equivs \
   && apt autoremove -qy --purge \
   && rm -rf /var/lib/apt/lists/* \
   && apt clean \
-  && rm -rf /var/cache/apt/
-
-# Add to path and generate cache
-RUN $(find /opt/texlive -name tlmgr) path add \
+  && rm -rf /var/cache/apt/ \
+  # Add to path and generate cache
+  && $(find /opt/texlive -name tlmgr) path add \
   && (luaotfload-tool -u || true) \
   && (mtxrun --generate || true) \
   && (cp "$(find /usr/local/texlive -name texlive-fontconfig.conf)" /etc/fonts/conf.d/09-texlive-fonts.conf || true) \
