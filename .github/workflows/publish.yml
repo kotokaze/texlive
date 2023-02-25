@@ -19,6 +19,7 @@ jobs:
   pre-build:
     runs-on: ubuntu-latest
     permissions:
+      actions: write  # See https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-a-github-actions-cache-for-a-repository-using-a-cache-id
       contents: read
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -45,6 +46,7 @@ jobs:
       # Restore cached repository
       # https://github.com/actions/cache/tree/main/restore
       - name: Restore cached repository 📦
+        id: restore
         uses: actions/cache/restore@v3
         with:
           path: ${{ github.workspace }}/texlive/
@@ -63,6 +65,18 @@ jobs:
         with:
           path: ${{ github.workspace }}/texlive/
           key: rsync-${{ github.sha }}
+
+      # Workaround: https://github.com/actions/cache/blob/main/tips-and-workarounds.md#force-deletion-of-caches-overriding-default-cache-eviction-policy
+      - name: Delete old repo cache 🗑️
+        if: ${{ steps.restore.outputs.cache-hit }}
+        shell: bash
+        run: |
+          gh extension install actions/gh-actions-cache
+
+          [ $(gh actions-cache list -R ${{ github.repository }} -B ${{ github.ref }} --key rsync- | wc -l) -lt 2 ] && exit 0
+          gh actions-cache delete ${{ steps.restore.outputs.cache-matched-key }} -R ${{ github.repository }} --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     runs-on: ubuntu-latest
