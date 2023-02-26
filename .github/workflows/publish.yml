@@ -132,22 +132,21 @@ jobs:
           echo "::group::Purging apt packages"
           echo "Removing large packages"
           sudo apt purge -qy '^dotnet-.*'
-          sudo apt purge -qy '^llvm-.*'
-          sudo apt purge -qy 'php.*'
-          sudo apt purge -qy '^mongodb.*'
+          sudo apt purge -qy '^temurin-.*'
+          sudo apt purge -qy '^llvm-.*' '^libllvm.*' '^clang-.*' '^libclang.*'
+          sudo apt purge -qy '^gfortran-.*'
+          sudo apt purge -qy '^mysql.*' '^postgresql.*' '^mongodb.*'
           sudo apt purge -qy '^mono.*'
-          sudo apt purge -qy '^mysql.*'
 
           sudo apt purge -qy \
             azure-cli \
-            firefox \
-            google-chrome-stable \
+            microsoft-edge-stable \
             google-cloud-sdk \
-            hhvm \
-            nginx \
+            google-chrome-stable \
+            firefox \
             powershell \
-            libgl1-mesa-dri \
-            microsoft-edge-stable
+            nginx \
+            libgl1-mesa-dri
           sudo apt autoremove -qy
           sudo apt clean -qy
           df -h
