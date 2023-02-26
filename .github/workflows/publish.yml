@@ -170,13 +170,13 @@ jobs:
         uses: docker/bake-action@v2
         with:
           files: docker-bake.hcl,docker-bake.override.json
-          push: ${{ github.event_name != 'pull_request' }}
           set: |
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-to=type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
             *.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-            *.output=type=oci,dest=texlive.oci
             *.platform=${{ matrix.platform }}
+        env:
+          PUSH: ${{ github.event_name != 'pull_request' }}
 
       # Cleanup repository
       - name: Cleanup 🧹

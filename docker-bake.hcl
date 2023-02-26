@@ -1,6 +1,10 @@
 // This is what is baked by GitHub Actions
 group "default" { targets = ["bullseye-full"] }
 
+variable "PUSH" {
+  default = "false"
+}
+
 target "metadata-action-bullseye-full" {}
 
 target "_platforms" {
@@ -24,6 +28,10 @@ target "_base" {
   ]
   context = "."
   dockerfile = "Dockerfile"
+  output = [
+    "type=oci,dest=texlive.oci",
+    "type=image,push=${PUSH}"
+  ]
 }
 
 target "bullseye-full" {
