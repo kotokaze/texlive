@@ -61,7 +61,14 @@ jobs:
 
       - name: Run rsync 📁
         shell: bash
-        run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
+        run: |
+          echo "::group::rsync"
+          script/rsync.sh texlive/ ${{ env.REPO }} --exclude-from=rsyncignore.txt
+          echo "::endgroup::"
+
+          echo "::group::Repository tree"
+          tree -nh texlive/
+          echo "::endgroup::"
 
       # Save repository to cache
       # https://github.com/actions/cache/tree/main/save
@@ -188,7 +195,10 @@ jobs:
           tree -nhL 2
           echo "::endgroup::"
 
+          echo "::group::Removing repository"
           rm -rfv texlive
+          echo "::endgroup::"
+
           df -h
 
       # Upload artifacts
