@@ -5,6 +5,11 @@ variable "PUSH" {
   default = "false"
 }
 
+function "_output" {
+  params = [push]
+  result = push ? "type=registry" : "type=oci,dest=texlive.oci"
+}
+
 target "metadata-action-bullseye-full" {}
 
 target "_platforms" {
@@ -28,10 +33,7 @@ target "_base" {
   ]
   context = "."
   dockerfile = "Dockerfile"
-  output = [
-    "type=oci,dest=texlive.oci",
-    "type=image,push=${PUSH}"
-  ]
+  output = [_output(PUSH)]
 }
 
 target "bullseye-full" {
