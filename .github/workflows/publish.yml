@@ -32,16 +32,21 @@ jobs:
           fetch-depth: 1
 
       # Get the platforms from the docker-bake.hcl file
-      - name: Get platforms 📦
+      - name: Get platforms 🔍
+        id: get-platforms
+        shell: bash
+        run: echo "platforms=$(docker buildx bake _platforms --print | jq -cr '.target._platforms.platforms' | sed 's|\"|\\\"|g')" >> ${GITHUB_OUTPUT}
+
+      # Set the matrix
+      - name: Set matrix 🎨
         id: set-matrix
         shell: bash
-        run: |
-          echo "matrix=$(docker buildx bake _platforms --print | jq -cr '.target._platforms.platforms')" >> ${GITHUB_OUTPUT}
+        run: echo "matrix={ \"platform\":${{ steps.get-platforms.outputs.platforms }} }" >> ${GITHUB_OUTPUT}
 
-      # Show the platforms
-      - name: Show platforms 📝
+      # Show the matrix
+      - name: Show matrix 📊
         shell: bash
-        run: echo ${{ steps.set-matrix.outputs.matrix }}
+        run: echo ${{ fromJson(steps.set-matrix.outputs.matrix) }}
 
       # Restore cached repository
       # https://github.com/actions/cache/tree/main/restore
@@ -56,7 +61,14 @@ jobs:
 
       - name: Run rsync 📁
         shell: bash
-        run: ${{ github.workspace }}/script/rsync.sh ${{ env.REPO }} ${{ github.workspace }}/texlive/ --exclude-from=${{ github.workspace }}/rsyncignore.txt
+        run: |
+          echo "::group::rsync"
+          script/rsync.sh ${{ env.REPO }} texlive/ --exclude-from=rsyncignore.txt
+          echo "::endgroup::"
+
+          echo "::group::Repository tree"
+          tree -nh texlive/
+          echo "::endgroup::"
 
       # Save repository to cache
       # https://github.com/actions/cache/tree/main/save
@@ -83,8 +95,7 @@ jobs:
     needs: pre-build
     strategy:
       fail-fast: false
-      matrix:
-        platform: ${{ fromJson(needs.pre-build.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.pre-build.outputs.matrix) }}
     permissions:
       contents: read
 
@@ -149,12 +160,6 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.clone_url }}
 
-      # Merge metadata (labels, tags) with build args
-      # Workaround: https://github.com/docker/metadata-action/issues/124#issuecomment-1018441005
-      - name: Merge metadata 🚚
-        id: merge
-        run: jq -s '.[0]' ${{ steps.meta.outputs.bake-file }} > docker-bake.override.json
-
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into ${{ env.REGISTRY }} 📨
@@ -166,20 +171,23 @@ jobs:
 
       # Build Docker image with Bake
       # https://github.com/docker/bake-action
-      - name: Build / Push Docker image 🐳
+      - name: Build / Push image 🐳
         uses: docker/bake-action@v2
         with:
-          files: docker-bake.hcl,docker-bake.override.json
-          push: ${{ github.event_name != 'pull_request' }}
+          files: |
+            docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file }}
           set: |
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-to=type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
             *.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-            *.output=type=oci,dest=texlive.oci
             *.platform=${{ matrix.platform }}
+        env:
+          PUSH: ${{ github.event_name != 'pull_request' }}
 
       # Cleanup repository
       - name: Cleanup 🧹
+        if: ${{ github.event_name == 'pull_request' }}
         shell: bash
         run: |
           echo "::group::Current disk"
@@ -187,12 +195,16 @@ jobs:
           tree -nhL 2
           echo "::endgroup::"
 
+          echo "::group::Removing repository"
           rm -rfv texlive
+          echo "::endgroup::"
+
           df -h
 
       # Upload artifacts
       # https://github.com/actions/upload-artifact
       - name: Upload artifacts 📚
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v3
         with:
           name: TL${{ steps.tl-release.outputs.number }}-${{ steps.get-arch.outputs.arch }}
