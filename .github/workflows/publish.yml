@@ -118,6 +118,58 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Free up disk space
+      # Workaround: https://github.com/actions/runner-images#2840
+      - name: Free up disk space 🗑️
+        shell: bash
+        run: |
+          echo "::group::Current disk space usage"
+          echo "Listing 100 largest packages"
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
+          df -h
+          echo "::endgroup::"
+
+          echo "::group::Purging apt packages"
+          echo "Removing large packages"
+          sudo apt purge -qy '^dotnet-.*'
+          sudo apt purge -qy '^llvm-.*'
+          sudo apt purge -qy 'php.*'
+          sudo apt purge -qy '^mongodb.*'
+          sudo apt purge -qy '^mono.*'
+          sudo apt purge -qy '^mysql.*'
+
+          sudo apt purge -qy \
+            azure-cli \
+            firefox \
+            google-chrome-stable \
+            google-cloud-sdk \
+            hhvm \
+            nginx \
+            powershell \
+            libgl1-mesa-dri \
+            microsoft-edge-stable
+          sudo apt autoremove -qy
+          sudo apt clean -qy
+          df -h
+          echo "::endgroup::"
+
+          echo "::group::Removing large directories"
+          sudo rm -rfv \
+            ${AGENT_TOOLSDIRECTORY} \
+            /usr/share/dotnet \
+            /usr/local/graalvm/ \
+            /usr/local/.ghcup/ \
+            /usr/local/lib/android \
+            /usr/local/lib/node_modules \
+            /usr/local/share/chromium \
+            /usr/local/share/edge_driver \
+            /usr/local/share/powershell \
+            /usr/local/share/vcpkg
+          echo "::endgroup::"
+
+          df -h
+          docker system df
+
       # Build Docker image with Bake
       # https://github.com/docker/bake-action
       - name: Build / Push image 🐳
