@@ -32,16 +32,21 @@ jobs:
           fetch-depth: 1
 
       # Get the platforms from the docker-bake.hcl file
-      - name: Get platforms 📦
+      - name: Get platforms 🔍
+        id: get-platforms
+        shell: bash
+        run: echo "platforms=$(docker buildx bake _platforms --print | jq -cr '.target._platforms.platforms' | sed 's|\"|\\\"|g')" >> ${GITHUB_OUTPUT}
+
+      # Set the matrix
+      - name: Set matrix 🎨
         id: set-matrix
         shell: bash
-        run: |
-          echo "matrix=$(docker buildx bake _platforms --print | jq -cr '.target._platforms.platforms')" >> ${GITHUB_OUTPUT}
+        run: echo "matrix={ \"platform\":${{ steps.get-platforms.outputs.platforms }} }" >> ${GITHUB_OUTPUT}
 
-      # Show the platforms
-      - name: Show platforms 📝
+      # Show the matrix
+      - name: Show matrix 📊
         shell: bash
-        run: echo ${{ steps.set-matrix.outputs.matrix }}
+        run: echo ${{ fromJson(steps.set-matrix.outputs.matrix) }}
 
       # Restore cached repository
       # https://github.com/actions/cache/tree/main/restore
@@ -83,8 +88,7 @@ jobs:
     needs: pre-build
     strategy:
       fail-fast: false
-      matrix:
-        platform: ${{ fromJson(needs.pre-build.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.pre-build.outputs.matrix) }}
     permissions:
       contents: read
 
@@ -166,7 +170,7 @@ jobs:
 
       # Build Docker image with Bake
       # https://github.com/docker/bake-action
-      - name: Build / Push Docker image 🐳
+      - name: Build / Push image 🐳
         uses: docker/bake-action@v2
         with:
           files: docker-bake.hcl,docker-bake.override.json
