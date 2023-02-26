@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           echo "::group::rsync"
-          script/rsync.sh texlive/ ${{ env.REPO }} --exclude-from=rsyncignore.txt
+          script/rsync.sh ${{ env.REPO }} texlive/ --exclude-from=rsyncignore.txt
           echo "::endgroup::"
 
           echo "::group::Repository tree"
