@@ -153,12 +153,6 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.clone_url }}
 
-      # Merge metadata (labels, tags) with build args
-      # Workaround: https://github.com/docker/metadata-action/issues/124#issuecomment-1018441005
-      - name: Merge metadata 🚚
-        id: merge
-        run: jq -s '.[0]' ${{ steps.meta.outputs.bake-file }} > docker-bake.override.json
-
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into ${{ env.REGISTRY }} 📨
@@ -173,7 +167,9 @@ jobs:
       - name: Build / Push image 🐳
         uses: docker/bake-action@v2
         with:
-          files: docker-bake.hcl,docker-bake.override.json
+          files: |
+            docker-bake.hcl
+            ${{ steps.meta.outputs.bake-file }}
           set: |
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-to=type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
@@ -184,6 +180,7 @@ jobs:
 
       # Cleanup repository
       - name: Cleanup 🧹
+        if: ${{ github.event_name == 'pull_request' }}
         shell: bash
         run: |
           echo "::group::Current disk"
@@ -197,6 +194,7 @@ jobs:
       # Upload artifacts
       # https://github.com/actions/upload-artifact
       - name: Upload artifacts 📚
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v3
         with:
           name: TL${{ steps.tl-release.outputs.number }}-${{ steps.get-arch.outputs.arch }}
