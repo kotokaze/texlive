@@ -13,7 +13,6 @@ env:
   BUILDKIT_PROGRESS: plain
   REGISTRY: ${{ vars.REGISTRY }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME }}
-  MULTIARCH: ${{ vars.MULTIARCH }}
   REPO: ${{ vars.REPO }}
 
 jobs:
@@ -109,6 +108,12 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.clone_url }}
 
+      # Read platforms as CSV from bake file
+      - name: Read platforms from bake file 🔍
+        id: get-platforms
+        shell: bash
+        run: echo "platform=$(docker buildx bake -f docker-bake.hcl --print _platforms | jq -cr '.target._platforms.platforms | @csv' | tr -d '"')" >> ${GITHUB_OUTPUT}
+
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into ${{ env.REGISTRY }} 📨
@@ -181,9 +186,9 @@ jobs:
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-to=type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
             *.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+            *.platform=${{ steps.get-platforms.outputs.platform }}
         env:
           PUSH: ${{ github.event_name != 'pull_request' }}
-          MULTIARCH: ${{ env.MULTIARCH }}
 
       # Cleanup repository
       - name: Cleanup 🧹

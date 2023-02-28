@@ -10,19 +10,6 @@ function "_output" {
   result = push ? "type=registry" : "type=oci,dest=texlive.oci"
 }
 
-variable "AMD64" {
-  default = "false"
-}
-
-variable "MULTIARCH" {
-  default = "false"
-}
-
-function "_platforms" {
-  params = [amd64, multi]
-  result = multi ? "linux/amd64,linux/arm64" : ( amd64 ? "linux/amd64" : "linux/arm64" )
-}
-
 variable "VARIANT" {
   default = null
 }
@@ -40,6 +27,13 @@ variable "SRCFILES" {
 }
 
 target "metadata-action-bullseye-full" {}
+
+target "_platforms" {
+  platforms = [
+    "linux/amd64",
+    "linux/arm64",
+  ]
+}
 
 target "_args" {
   args = {
@@ -62,7 +56,6 @@ target "_base" {
   ]
   context = "."
   dockerfile = "Dockerfile"
-  platforms = [_platforms(AMD64, MULTIARCH)]
   output = [_output(PUSH)]
 }
 
