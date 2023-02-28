@@ -5,8 +5,8 @@ on:
     - cron: '0 3 * * 0,3,6'
   workflow_dispatch:
   pull_request:
-    branches: [ 'master' ]
   push:
+    branches: [ 'master' ]
     tags: [ 'v*' ]
 
 env:
@@ -16,13 +16,11 @@ env:
   REPO: ${{ vars.REPO }}
 
 jobs:
-  pre-build:
+  build:
     runs-on: ubuntu-latest
     permissions:
       actions: write  # See https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-a-github-actions-cache-for-a-repository-using-a-cache-id
       contents: read
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
 
     steps:
       # Checkout the repository
@@ -30,23 +28,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 1
-
-      # Get the platforms from the docker-bake.hcl file
-      - name: Get platforms 🔍
-        id: get-platforms
-        shell: bash
-        run: echo "platforms=$(docker buildx bake _platforms --print | jq -cr '.target._platforms.platforms' | sed 's|\"|\\\"|g')" >> ${GITHUB_OUTPUT}
-
-      # Set the matrix
-      - name: Set matrix 🎨
-        id: set-matrix
-        shell: bash
-        run: echo "matrix={ \"platform\":${{ steps.get-platforms.outputs.platforms }} }" >> ${GITHUB_OUTPUT}
-
-      # Show the matrix
-      - name: Show matrix 📊
-        shell: bash
-        run: echo ${{ fromJson(steps.set-matrix.outputs.matrix) }}
 
       # Restore cached repository
       # https://github.com/actions/cache/tree/main/restore
@@ -90,39 +71,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build:
-    runs-on: ubuntu-latest
-    needs: pre-build
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.pre-build.outputs.matrix) }}
-    permissions:
-      contents: read
-
-    steps:
-      # Get platform architecture
-      - name: Get architecture 🖥️
-        id: get-arch
-        shell: bash
-        run: |
-          platform=${{ matrix.platform }}
-          echo "arch=${platform#*\/}" >> ${GITHUB_OUTPUT}
-
-      # Checkout the repository
-      - name: Checkout  🎯
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
-
-      # Restore cached repository
-      # https://github.com/actions/cache/tree/main/restore
-      - name: Restore cached repository 📦
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ github.workspace }}/texlive/
-          key: rsync-${{ github.sha }}
-          fail-on-cache-miss: true
-
       # Get the release version of the repository
       - name: Get TeX Live release version 🔖
         id: tl-release
@@ -160,6 +108,12 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.event.repository.clone_url }}
 
+      # Read platforms as CSV from bake file
+      - name: Read platforms from bake file 🔍
+        id: get-platforms
+        shell: bash
+        run: echo "platform=$(docker buildx bake -f docker-bake.hcl --print _platforms | jq -cr '.target._platforms.platforms | @csv' | tr -d '"')" >> ${GITHUB_OUTPUT}
+
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into ${{ env.REGISTRY }} 📨
@@ -168,6 +122,56 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Free up disk space
+      # Workaround: actions/runner-images#2840
+      - name: Free up disk space 🗑️
+        shell: bash
+        run: |
+          echo "::group::Current disk space usage"
+          echo "Listing 100 largest packages"
+          dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
+          df -h
+          echo "::endgroup::"
+
+          echo "::group::Purging apt packages"
+          echo "Removing large packages"
+          sudo apt purge -qy '^dotnet-.*'
+          sudo apt purge -qy '^temurin-.*'
+          sudo apt purge -qy '^llvm-.*' '^libllvm.*' '^clang-.*' '^libclang.*'
+          sudo apt purge -qy '^gfortran-.*'
+          sudo apt purge -qy '^mysql.*' '^postgresql.*' '^mongodb.*'
+          sudo apt purge -qy '^mono.*'
+
+          sudo apt purge -qy \
+            azure-cli \
+            microsoft-edge-stable \
+            google-cloud-sdk \
+            google-chrome-stable \
+            firefox \
+            powershell \
+            nginx \
+            libgl1-mesa-dri
+          sudo apt autoremove -qy
+          sudo apt clean -qy
+          df -h
+          echo "::endgroup::"
+
+          echo "Removing large directories..."
+          sudo rm -rf \
+            ${AGENT_TOOLSDIRECTORY} \
+            /usr/share/dotnet \
+            /usr/local/graalvm/ \
+            /usr/local/.ghcup/ \
+            /usr/local/lib/android \
+            /usr/local/lib/node_modules \
+            /usr/local/share/chromium \
+            /usr/local/share/edge_driver \
+            /usr/local/share/powershell \
+            /usr/local/share/vcpkg
+
+          df -h
+          docker system df
 
       # Build Docker image with Bake
       # https://github.com/docker/bake-action
@@ -181,7 +185,7 @@ jobs:
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-to=type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
             *.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-            *.platform=${{ matrix.platform }}
+            *.platform=${{ steps.get-platforms.outputs.platform }}
         env:
           PUSH: ${{ github.event_name != 'pull_request' }}
 
@@ -195,10 +199,7 @@ jobs:
           tree -nhL 2
           echo "::endgroup::"
 
-          echo "::group::Removing repository"
-          rm -rfv texlive
-          echo "::endgroup::"
-
+          rm -rf texlive
           df -h
 
       # Upload artifacts
@@ -207,6 +208,6 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v3
         with:
-          name: TL${{ steps.tl-release.outputs.number }}-${{ steps.get-arch.outputs.arch }}
+          name: TL${{ steps.tl-release.outputs.number }}
           path: texlive.oci
           if-no-files-found: error
