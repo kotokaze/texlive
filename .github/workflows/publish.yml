@@ -124,7 +124,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # Free up disk space
-      # Workaround: https://github.com/actions/runner-images#2840
+      # Workaround: actions/runner-images#2840
       - name: Free up disk space 🗑️
         shell: bash
         run: |
@@ -157,8 +157,8 @@ jobs:
           df -h
           echo "::endgroup::"
 
-          echo "::group::Removing large directories"
-          sudo rm -rfv \
+          echo "Removing large directories..."
+          sudo rm -rf \
             ${AGENT_TOOLSDIRECTORY} \
             /usr/share/dotnet \
             /usr/local/graalvm/ \
@@ -169,7 +169,6 @@ jobs:
             /usr/local/share/edge_driver \
             /usr/local/share/powershell \
             /usr/local/share/vcpkg
-          echo "::endgroup::"
 
           df -h
           docker system df
@@ -200,10 +199,7 @@ jobs:
           tree -nhL 2
           echo "::endgroup::"
 
-          echo "::group::Removing repository"
-          rm -rfv texlive
-          echo "::endgroup::"
-
+          rm -rf texlive
           df -h
 
       # Upload artifacts
