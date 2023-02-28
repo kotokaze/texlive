@@ -208,6 +208,6 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v3
         with:
-          name: TL${{ steps.tl-release.outputs.number }}-${{ steps.get-arch.outputs.arch }}
+          name: TL${{ steps.tl-release.outputs.number }}
           path: texlive.oci
           if-no-files-found: error
