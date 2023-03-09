@@ -35,9 +35,10 @@ jobs:
         id: restore
         uses: actions/cache/restore@v3
         with:
-          path: ${{ github.workspace }}/texlive/
+          path: texlive/
           key: rsync-${{ github.sha }}
           restore-keys: rsync-
+          enableCrossOsArchive: true
           fail-on-cache-miss: false
 
       - name: Run rsync 📁
@@ -56,8 +57,9 @@ jobs:
       - name: Save repository to cache 💾
         uses: actions/cache/save@v3
         with:
-          path: ${{ github.workspace }}/texlive/
+          path: texlive/
           key: rsync-${{ github.sha }}
+          enableCrossOsArchive: true
 
       # Workaround: https://github.com/actions/cache/blob/main/tips-and-workarounds.md#force-deletion-of-caches-overriding-default-cache-eviction-policy
       - name: Delete old repo cache 🗑️
