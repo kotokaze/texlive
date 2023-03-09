@@ -136,17 +136,16 @@ jobs:
 
           echo "::group::Purging apt packages"
           echo "Removing large packages"
-          sudo apt purge -qy '^dotnet-.*'
-          sudo apt purge -qy '^temurin-.*'
-          sudo apt purge -qy '^llvm-.*' '^libllvm.*' '^clang-.*' '^libclang.*'
-          sudo apt purge -qy '^gfortran-.*'
-          sudo apt purge -qy '^mysql.*' '^postgresql.*' '^mongodb.*'
-          sudo apt purge -qy '^mono.*'
+          sudo apt purge -qy \
+            '^dotnet-.*' '^mono.*' \
+            '^llvm-.*' '^libllvm.*' '^clang-.*' '^libclang.*' \
+            '^gfortran-.*' \
+            '^mysql.*' '^postgresql.*' '^mongodb.*'
 
           sudo apt purge -qy \
             azure-cli \
-            microsoft-edge-stable \
             google-cloud-sdk \
+            microsoft-edge-stable \
             google-chrome-stable \
             firefox \
             powershell \
