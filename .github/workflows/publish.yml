@@ -106,7 +106,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ fromJson(jobs.set-images.outputs.images) }}
+          images: ${{ fromJson(steps.set-images.outputs.images) }}
           bake-target: metadata-action-bullseye-full
           flavor: |
             latest=auto
