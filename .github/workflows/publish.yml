@@ -11,6 +11,7 @@ on:
 
 env:
   BUILDKIT_PROGRESS: plain
+  GHCR: ghcr.io
   REGISTRY: ${{ vars.REGISTRY }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME }}
   REPO: ${{ vars.REPO }}
@@ -21,6 +22,7 @@ jobs:
     permissions:
       actions: write  # See https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-a-github-actions-cache-for-a-repository-using-a-cache-id
       contents: read
+      packages: write
 
     steps:
       # Checkout the repository
@@ -89,13 +91,22 @@ jobs:
       - name: Setup buildx 🔧
         uses: docker/setup-buildx-action@v2
 
+      # Set images in Json
+      - name: Set images
+        id: set-images
+        shell: bash
+        run: |
+          images=("${{ env.GHCR }}/${{ github.repository }}/${{ env.IMAGE_NAME }}")
+          [ ! -z "${{ env.REGISTRY }}"] && images+=("${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}")
+          echo "images=$(jq -cn '$ARGS.positional' --args -- "${images[@]}")" >> ${GITHUB_OUTPUT}
+
       # Extract metadata (tags, labels)
       # https://github.com/docker/metadata-action
       - name: Extract metadata 🔍
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ fromJson(jobs.set-images.outputs.images) }}
           bake-target: metadata-action-bullseye-full
           flavor: |
             latest=auto
@@ -116,14 +127,23 @@ jobs:
         shell: bash
         run: echo "platform=$(docker buildx bake -f docker-bake.hcl --print _platforms | jq -cr '.target._platforms.platforms | @csv' | tr -d '"')" >> ${GITHUB_OUTPUT}
 
-      # Login against a Docker registry except on PR
+      # Login to GitHub registry
       # https://github.com/docker/login-action
-      - name: Log into ${{ env.REGISTRY }} 📨
+      - name: Log into GitHub registry 📇
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.GHCR }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Login to another registry
+      # https://github.com/docker/login-action
+      - name: Log into ${{ env.REGISTRY }} 📇
+        if: ${{ github.event_name != 'pull_request' }}
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
 
       # Free up disk space
       # Workaround: actions/runner-images#2840
