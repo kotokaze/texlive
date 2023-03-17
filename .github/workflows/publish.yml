@@ -96,8 +96,8 @@ jobs:
         id: set-images
         shell: bash
         run: |
-          images=("${{ env.GHCR }}/${{ github.repository }}/${{ env.IMAGE_NAME }}")
-          [ ! -z "${{ env.REGISTRY }}"] && images+=("${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}")
+          images=("${{ env.GHCR }}/${{ github.repository }}")
+          [ ! -z "${{ env.REGISTRY }}" ] && images+=("${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}")
           echo "images=$(jq -cn '$ARGS.positional' --args -- "${images[@]}")" | tee -a "${GITHUB_OUTPUT}"
 
       # Extract metadata (tags, labels)
@@ -204,7 +204,7 @@ jobs:
             ${{ steps.meta.outputs.bake-file }}
           set: |
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
-            *.cache-to=type=registry,mode=max,ref={{ env.GHCR }}/${{ github.repository }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
+            *.cache-to=type=registry,mode=max,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache,oci-mediatypes=true
             *.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
             *.platform=${{ steps.get-platforms.outputs.platform }}
         env:
