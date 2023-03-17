@@ -98,7 +98,7 @@ jobs:
         run: |
           images=("${{ env.GHCR }}/${{ github.repository }}/${{ env.IMAGE_NAME }}")
           [ ! -z "${{ env.REGISTRY }}"] && images+=("${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}")
-          echo "images=$(jq -cn '$ARGS.positional' --args -- "${images[@]}")" >> ${GITHUB_OUTPUT}
+          echo "images=$(jq -cn '$ARGS.positional' --args -- "${images[@]}")" | tee -a "${GITHUB_OUTPUT}"
 
       # Extract metadata (tags, labels)
       # https://github.com/docker/metadata-action
