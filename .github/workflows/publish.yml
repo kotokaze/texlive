@@ -204,7 +204,7 @@ jobs:
             ${{ steps.meta.outputs.bake-file }}
           set: |
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
-            *.cache-to=type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
+            *.cache-to=type=registry,mode=max,ref={{ env.GHCR }}/${{ github.repository }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
             *.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
             *.platform=${{ steps.get-platforms.outputs.platform }}
         env:
