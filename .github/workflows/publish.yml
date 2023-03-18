@@ -133,6 +133,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ env.GHCR }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Login to another registry
