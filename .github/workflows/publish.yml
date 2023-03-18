@@ -137,7 +137,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_TOKEN }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
       # Free up disk space
       # Workaround: actions/runner-images#2840
