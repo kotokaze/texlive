@@ -11,6 +11,7 @@ on:
 
 env:
   BUILDKIT_PROGRESS: plain
+  GHCR: ghcr.io
   REGISTRY: ${{ vars.REGISTRY }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME }}
   REPO: ${{ vars.REPO }}
@@ -21,6 +22,7 @@ jobs:
     permissions:
       actions: write  # See https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-a-github-actions-cache-for-a-repository-using-a-cache-id
       contents: read
+      packages: write
 
     steps:
       # Checkout the repository
@@ -35,9 +37,10 @@ jobs:
         id: restore
         uses: actions/cache/restore@v3
         with:
-          path: ${{ github.workspace }}/texlive/
+          path: texlive/
           key: rsync-${{ github.sha }}
           restore-keys: rsync-
+          enableCrossOsArchive: true
           fail-on-cache-miss: false
 
       - name: Run rsync 📁
@@ -56,8 +59,9 @@ jobs:
       - name: Save repository to cache 💾
         uses: actions/cache/save@v3
         with:
-          path: ${{ github.workspace }}/texlive/
+          path: texlive/
           key: rsync-${{ github.sha }}
+          enableCrossOsArchive: true
 
       # Workaround: https://github.com/actions/cache/blob/main/tips-and-workarounds.md#force-deletion-of-caches-overriding-default-cache-eviction-policy
       - name: Delete old repo cache 🗑️
@@ -93,7 +97,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.GHCR }}/${{ github.repository }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           bake-target: metadata-action-bullseye-full
           flavor: |
             latest=auto
@@ -114,14 +120,24 @@ jobs:
         shell: bash
         run: echo "platform=$(docker buildx bake -f docker-bake.hcl --print _platforms | jq -cr '.target._platforms.platforms | @csv' | tr -d '"')" >> ${GITHUB_OUTPUT}
 
-      # Login against a Docker registry except on PR
+      # Login to GitHub registry
       # https://github.com/docker/login-action
-      - name: Log into ${{ env.REGISTRY }} 📨
+      - name: Log into GitHub registry 📇
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Login to another registry
+      # https://github.com/docker/login-action
+      - name: Log into ${{ env.REGISTRY }} 📇
+        if: ${{ github.event_name != 'pull_request' }}
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
 
       # Free up disk space
       # Workaround: actions/runner-images#2840
@@ -182,8 +198,8 @@ jobs:
             ${{ steps.meta.outputs.bake-file }}
           set: |
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
-            *.cache-to=type=registry,mode=max,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,oci-mediatypes=true
-            *.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+            *.cache-to=type=registry,mode=max,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache,oci-mediatypes=true
+            *.cache-from=type=registry,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache
             *.platform=${{ steps.get-platforms.outputs.platform }}
         env:
           PUSH: ${{ github.event_name != 'pull_request' }}
