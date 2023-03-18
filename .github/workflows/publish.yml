@@ -91,22 +91,15 @@ jobs:
       - name: Setup buildx 🔧
         uses: docker/setup-buildx-action@v2
 
-      # Set images in Json
-      - name: Set images
-        id: set-images
-        shell: bash
-        run: |
-          images="${{ env.GHCR }}/${{ github.repository }}\n"
-          [ ! -z "${{ env.REGISTRY }}" ] && images+="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\n"
-          echo "images=${images}" | tee -a "${GITHUB_OUTPUT}"
-
       # Extract metadata (tags, labels)
       # https://github.com/docker/metadata-action
       - name: Extract metadata 🔍
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ steps.set-images.outputs.images }}
+          images: |
+            ${{ env.GHCR }}/${{ github.repository }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           bake-target: metadata-action-bullseye-full
           flavor: |
             latest=auto
