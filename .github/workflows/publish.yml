@@ -199,7 +199,7 @@ jobs:
           set: |
             *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-to=type=registry,mode=max,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache,oci-mediatypes=true
-            *.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+            *.cache-from=type=registry,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache
             *.platform=${{ steps.get-platforms.outputs.platform }}
         env:
           PUSH: ${{ github.event_name != 'pull_request' }}
