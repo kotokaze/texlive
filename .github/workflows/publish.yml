@@ -57,6 +57,7 @@ jobs:
       # Save repository to cache
       # https://github.com/actions/cache/tree/main/save
       - name: Save repository to cache 💾
+        if: ${{ ! startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/cache/save@v3
         with:
           path: texlive/
