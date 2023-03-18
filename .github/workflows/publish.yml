@@ -15,6 +15,7 @@ env:
   REGISTRY: ${{ vars.REGISTRY }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME }}
   REPO: ${{ vars.REPO }}
+  PUSH_IMAGE: ${{ github.event_name != 'pull_request' }}
 
 jobs:
   build:
@@ -202,11 +203,11 @@ jobs:
             *.cache-from=type=registry,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache
             *.platform=${{ steps.get-platforms.outputs.platform }}
         env:
-          PUSH: ${{ github.event_name != 'pull_request' }}
+          PUSH: ${{ env.PUSH_IMAGE }}
 
       # Cleanup repository
       - name: Cleanup 🧹
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ ! env.PUSH_IMAGE }}
         shell: bash
         run: |
           echo "::group::Current disk"
@@ -220,7 +221,7 @@ jobs:
       # Upload artifacts
       # https://github.com/actions/upload-artifact
       - name: Upload artifacts 📚
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ ! env.PUSH_IMAGE }}
         uses: actions/upload-artifact@v3
         with:
           name: TL${{ steps.tl-release.outputs.number }}
