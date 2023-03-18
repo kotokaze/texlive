@@ -96,9 +96,9 @@ jobs:
         id: set-images
         shell: bash
         run: |
-          images=("${{ env.GHCR }}/${{ github.repository }}")
-          [ ! -z "${{ env.REGISTRY }}" ] && images+=("${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}")
-          echo "images=$(jq -cn '$ARGS.positional' --args -- "${images[@]}")" | tee -a "${GITHUB_OUTPUT}"
+          images="${{ env.GHCR }}/${{ github.repository }}\n"
+          [ ! -z "${{ env.REGISTRY }}" ] && images+="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\n"
+          echo "images=${images}" | tee -a "${GITHUB_OUTPUT}"
 
       # Extract metadata (tags, labels)
       # https://github.com/docker/metadata-action
@@ -106,7 +106,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ fromJson(steps.set-images.outputs.images) }}
+          images: ${{ steps.set-images.outputs.images }}
           bake-target: metadata-action-bullseye-full
           flavor: |
             latest=auto
