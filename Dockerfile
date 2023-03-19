@@ -75,4 +75,6 @@ RUN curl -sSL https://tug.org/texlive/files/debian-equivs-${RELEASE}-ex.txt  \
   && fc-cache -fsv
 
 WORKDIR /root
-ENTRYPOINT [ "/bin/bash" ]
+ENV \
+  MANPATH=${MANPATH}:/opt/texlive/texmf-dist/doc/man \
+  INFOPATH=${INFOPATH}:/opt/texlive/texmf-dist/doc/info
