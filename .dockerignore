@@ -1,0 +1,5 @@
+/.github/
+/script/
+/.devcontainer.json
+/rsyncignore.txt
+/*.oci
