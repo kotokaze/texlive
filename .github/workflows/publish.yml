@@ -203,11 +203,11 @@ jobs:
             *.cache-from=type=registry,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache
             *.platform=${{ steps.get-platforms.outputs.platform }}
         env:
-          PUSH: ${{ env.PUSH_IMAGE }}
+          PUSH: ${{ fromJson(env.PUSH_IMAGE) }}
 
       # Cleanup repository
       - name: Cleanup 🧹
-        if: ${{ ! env.PUSH_IMAGE }}
+        if: ${{ ! fromJson(env.PUSH_IMAGE) }}
         shell: bash
         run: |
           echo "::group::Current disk"
@@ -221,7 +221,7 @@ jobs:
       # Upload artifacts
       # https://github.com/actions/upload-artifact
       - name: Upload artifacts 📚
-        if: ${{ ! env.PUSH_IMAGE }}
+        if: ${{ ! fromJson(env.PUSH_IMAGE) }}
         uses: actions/upload-artifact@v3
         with:
           name: TL${{ steps.tl-release.outputs.number }}
