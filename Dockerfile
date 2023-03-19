@@ -1,4 +1,5 @@
-### base stage
+# syntax=docker/dockerfile:1
+
 ARG VARIANT=bullseye
 FROM buildpack-deps:${VARIANT}-curl
 WORKDIR /tmp
@@ -31,7 +32,7 @@ RUN apt update && apt install -qy --no-install-recommends \
   && rm -rf /var/cache/apt/
 
 # Create profile
-COPY texlive.installation.profile .
+COPY --link texlive.installation.profile .
 RUN sed -i \
   -e "/^selected_scheme\ scheme-/s/full/"${SCHEME}"/" \
   -e "/^tlpdbopt_install_docfiles\ /s/0/"${DOCFILES}"/" \
@@ -40,7 +41,7 @@ RUN sed -i \
   && cat texlive.installation.profile
 
 # Compile TeX Live (Use local repo if available)
-COPY texliv[e] texlive/
+COPY --link texliv[e] texlive/
 RUN if [ ! -d texlive ] \
   ;then \
   echo "Using online installer" \
