@@ -2,7 +2,7 @@ name: Docker
 
 on:
   schedule:
-    - cron: '0 3 * * 0,3,6'
+    - cron: '0 3 * * *'
   workflow_dispatch:
   pull_request:
   push:
@@ -15,6 +15,7 @@ env:
   REGISTRY: ${{ vars.REGISTRY }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME }}
   REPO: ${{ vars.REPO }}
+  PUSH_IMAGE: ${{ github.event_name != 'pull_request' }}
 
 jobs:
   build:
@@ -57,6 +58,7 @@ jobs:
       # Save repository to cache
       # https://github.com/actions/cache/tree/main/save
       - name: Save repository to cache 💾
+        if: ${{ ! startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/cache/save@v3
         with:
           path: texlive/
@@ -106,7 +108,6 @@ jobs:
             prefix=TL${{ steps.tl-release.outputs.number }}-bullseye-full-,onlatest=false
           tags: |
             type=schedule,pattern=nightly
-            type=schedule,pattern=nightly-{{date 'YYYYMMDD' tz='Asia/Tokyo'}}
             type=semver,pattern=v{{version}}
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
@@ -202,11 +203,11 @@ jobs:
             *.cache-from=type=registry,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache
             *.platform=${{ steps.get-platforms.outputs.platform }}
         env:
-          PUSH: ${{ github.event_name != 'pull_request' }}
+          PUSH: ${{ env.PUSH_IMAGE }}
 
       # Cleanup repository
       - name: Cleanup 🧹
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ ! env.PUSH_IMAGE }}
         shell: bash
         run: |
           echo "::group::Current disk"
@@ -220,7 +221,7 @@ jobs:
       # Upload artifacts
       # https://github.com/actions/upload-artifact
       - name: Upload artifacts 📚
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ ! env.PUSH_IMAGE }}
         uses: actions/upload-artifact@v3
         with:
           name: TL${{ steps.tl-release.outputs.number }}
