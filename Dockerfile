@@ -71,7 +71,7 @@ RUN curl -sSL https://tug.org/texlive/files/debian-equivs-${RELEASE}-ex.txt  \
   && $(find /opt/texlive -name tlmgr) path add \
   && (luaotfload-tool -u || true) \
   && (mtxrun --generate || true) \
-  && (cp "$(find /usr/local/texlive -name texlive-fontconfig.conf)" /etc/fonts/conf.d/09-texlive-fonts.conf || true) \
+  && (cp "$(find /opt/texlive -name texlive-fontconfig.conf)" /etc/fonts/conf.d/09-texlive-fonts.conf || true) \
   && fc-cache -fsv
 
 WORKDIR /root
