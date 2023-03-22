@@ -198,7 +198,6 @@ jobs:
             docker-bake.hcl
             ${{ steps.meta.outputs.bake-file }}
           set: |
-            *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-to=type=registry,mode=max,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache,oci-mediatypes=true
             *.cache-from=type=registry,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache
             *.platform=${{ steps.get-platforms.outputs.platform }}

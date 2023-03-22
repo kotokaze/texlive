@@ -51,12 +51,13 @@ RUN if [ ! -d texlive ] \
   ;fi \
   && cd texlive \
   && perl ./install-tl -profile ../texlive.installation.profile --no-interaction \
+  && mv TEXLIVE_* ../ \
   && cd .. \
   && rm -rf texlive
 
 # Create dummy package with equivs and generate cache
-ARG RELEASE
-RUN (curl -sLf "https://tug.org/texlive/files/debian-equivs-"${RELEASE}"-ex.txt" || curl -sSLf "https://tug.org/texlive/files/debian-equivs-"$((${RELEASE}-1))"-ex.txt" )  \
+RUN RELEASE=$(find -name 'TEXLIVE_*' -print0 | sed -e s/[^0-9]//g) \
+  && (curl -sLf "https://tug.org/texlive/files/debian-equivs-"${RELEASE}"-ex.txt" || curl -sSLf "https://tug.org/texlive/files/debian-equivs-"$((${RELEASE}-1))"-ex.txt" ) \
   | sed -e "/^Version:\ /s/"${RELEASE}"/9999/" -e "/^Version:\ /s/"$((${RELEASE}-1))"/9999/" -e "/^Depends:\ freeglut3$/d" \
   | equivs-build - \
   && dpkg -i texlive-local_9999.99999999-1_all.deb \
