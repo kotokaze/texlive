@@ -56,8 +56,8 @@ RUN if [ ! -d texlive ] \
 
 # Create dummy package with equivs and generate cache
 ARG RELEASE
-RUN curl -sSL https://tug.org/texlive/files/debian-equivs-${RELEASE}-ex.txt  \
-  | sed -e "/^Version:\ /s/"${RELEASE}"/9999/" -e "/^Depends:\ freeglut3$/d" \
+RUN (curl -sLf "https://tug.org/texlive/files/debian-equivs-"${RELEASE}"-ex.txt" || curl -sSLf "https://tug.org/texlive/files/debian-equivs-"$((${RELEASE}-1))"-ex.txt" )  \
+  | sed -e "/^Version:\ /s/"${RELEASE}"/9999/" -e "/^Version:\ /s/"$((${RELEASE}-1))"/9999/" -e "/^Depends:\ freeglut3$/d" \
   | equivs-build - \
   && dpkg -i texlive-local_9999.99999999-1_all.deb \
   && apt install -qy --no-install-recommends \
