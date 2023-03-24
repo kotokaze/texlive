@@ -32,6 +32,12 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Get current year
+      - name: Get current year 📅
+        id: get-year
+        shell: bash
+        run: echo "year=$(date +%Y)" >> ${GITHUB_OUTPUT}
+
       # Restore cached repository
       # https://github.com/actions/cache/tree/main/restore
       - name: Restore cached repository 📦
@@ -39,8 +45,10 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: texlive/
-          key: rsync-${{ github.sha }}
-          restore-keys: rsync-
+          key: rsync-TL${{ steps.get-year.outputs.year }}-${{ github.sha }}
+          restore-keys: |
+            rsync-TL${{ steps.get-year.outputs.year }}-
+            rsync-
           enableCrossOsArchive: true
           fail-on-cache-miss: false
 
@@ -55,6 +63,12 @@ jobs:
           tree -nh texlive/
           echo "::endgroup::"
 
+      # Get the release version of the repository
+      - name: Get TeX Live release version 🔖
+        id: tl-release
+        shell: bash
+        run: echo "number=$(find ${{ github.workspace }}/texlive/ -name 'TEXLIVE_*' -print0 | sed -e s/[^0-9]//g)" >> ${GITHUB_OUTPUT}
+
       # Save repository to cache
       # https://github.com/actions/cache/tree/main/save
       - name: Save repository to cache 💾
@@ -62,7 +76,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: texlive/
-          key: rsync-${{ github.sha }}
+          key: rsync-TL${{ steps.tl-release.outputs.number }}-${{ github.sha }}
           enableCrossOsArchive: true
 
       # Workaround: https://github.com/actions/cache/blob/main/tips-and-workarounds.md#force-deletion-of-caches-overriding-default-cache-eviction-policy
@@ -76,12 +90,6 @@ jobs:
           gh actions-cache delete ${{ steps.restore.outputs.cache-matched-key }} -R ${{ github.repository }} --confirm
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Get the release version of the repository
-      - name: Get TeX Live release version 🔖
-        id: tl-release
-        shell: bash
-        run: echo "number=$(find ${{ github.workspace }}/texlive/ -name 'TEXLIVE_*' -print0 | sed -e s/[^0-9]//g)" >> ${GITHUB_OUTPUT}
 
       # Add support for more platforms with QEMU
       # https://github.com/docker/setup-qemu-action
@@ -198,7 +206,6 @@ jobs:
             docker-bake.hcl
             ${{ steps.meta.outputs.bake-file }}
           set: |
-            *.args.RELEASE=${{ steps.tl-release.outputs.number }}
             *.cache-to=type=registry,mode=max,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache,oci-mediatypes=true
             *.cache-from=type=registry,ref=${{ env.GHCR }}/${{ github.repository }}:buildcache
             *.platform=${{ steps.get-platforms.outputs.platform }}
