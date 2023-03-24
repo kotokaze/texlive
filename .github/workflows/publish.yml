@@ -45,10 +45,9 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: texlive/
-          key: rsync-TL${{ steps.get-year.outputs.year }}-${{ github.sha }}
+          key: TL${{ steps.get-year.outputs.year }}-${{ github.sha }}
           restore-keys: |
-            rsync-TL${{ steps.get-year.outputs.year }}-
-            rsync-
+            TL${{ steps.get-year.outputs.year }}-
           enableCrossOsArchive: true
           fail-on-cache-miss: false
 
@@ -86,7 +85,7 @@ jobs:
         run: |
           gh extension install actions/gh-actions-cache
 
-          [ $(gh actions-cache list -R ${{ github.repository }} -B ${{ github.ref }} --key rsync- | wc -l) -lt 2 ] && exit 0
+          [ $(gh actions-cache list -R ${{ github.repository }} -B ${{ github.ref }} --key TL- | wc -l) -lt 2 ] && exit 0
           gh actions-cache delete ${{ steps.restore.outputs.cache-matched-key }} -R ${{ github.repository }} --confirm
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
