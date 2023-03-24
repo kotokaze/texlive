@@ -76,7 +76,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: texlive/
-          key: rsync-TL${{ steps.tl-release.outputs.number }}-${{ github.sha }}
+          key: TL${{ steps.tl-release.outputs.number }}-${{ github.sha }}
           enableCrossOsArchive: true
 
       # Workaround: https://github.com/actions/cache/blob/main/tips-and-workarounds.md#force-deletion-of-caches-overriding-default-cache-eviction-policy
