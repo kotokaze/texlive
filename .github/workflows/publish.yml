@@ -151,6 +151,8 @@ jobs:
       # Free up disk space
       # Workaround: actions/runner-images#2840
       - name: Free up disk space 🗑️
+        # Since this step is not critical as long as the space is freed up, we can ignore errors
+        continue-on-error: true
         shell: bash
         run: |
           echo "::group::Current disk space usage"
@@ -169,7 +171,6 @@ jobs:
 
           sudo apt purge -qy \
             azure-cli \
-            google-cloud-sdk \
             microsoft-edge-stable \
             google-chrome-stable \
             firefox \
