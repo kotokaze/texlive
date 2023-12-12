@@ -22,14 +22,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      actions: write  # See https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-a-github-actions-cache-for-a-repository-using-a-cache-id
+      actions: write  # See https://docs.github.com/en/rest/actions/cache#delete-a-github-actions-cache-for-a-repository-using-a-cache-id
       contents: read
       packages: write
 
     steps:
       # Checkout the repository
       - name: Checkout  🎯
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -39,8 +39,6 @@ jobs:
         shell: bash
         run: echo "year=$(date +%Y)" >> ${GITHUB_OUTPUT}
 
-      # Restore cached repository
-      # https://github.com/actions/cache/tree/main/restore
       - name: Restore cached repository 📦
         id: restore
         uses: actions/cache/restore@v3
@@ -64,14 +62,11 @@ jobs:
           tree -nh texlive/
           echo "::endgroup::"
 
-      # Get the release version of the repository
       - name: Get TeX Live release version 🔖
         id: tl-release
         shell: bash
         run: echo "number=$(find ${{ github.workspace }}/texlive/ -name 'TEXLIVE_*' -print0 | sed -e s/[^0-9]//g)" >> ${GITHUB_OUTPUT}
 
-      # Save repository to cache
-      # https://github.com/actions/cache/tree/main/save
       - name: Save repository to cache 💾
         if: ${{ ! startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/cache/save@v3
@@ -92,21 +87,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Add support for more platforms with QEMU
-      # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU 💻
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
-      # Add support for Buildx
-      # https://github.com/docker/setup-buildx-action
       - name: Setup buildx 🔧
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
-      # Extract metadata (tags, labels)
-      # https://github.com/docker/metadata-action
       - name: Extract metadata 🔍
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             ${{ env.GHCR }}/${{ github.repository }}
@@ -128,19 +117,17 @@ jobs:
       - name: Read platforms from bake file 🔍
         id: get-platforms
         shell: bash
-        run: echo "platform=$(docker buildx bake -f docker-bake.hcl --print _platforms | jq -cr '.target._platforms.platforms | @csv' | tr -d '"')" >> ${GITHUB_OUTPUT}
+        run: |
+          echo "platform=$(docker buildx bake -f docker-bake.hcl --print _platforms | jq -cr '.target._platforms.platforms | @csv' | tr -d '"')" >> ${GITHUB_OUTPUT}
 
-      # Login to GitHub registry
-      # https://github.com/docker/login-action
       - name: Log into GitHub registry 📇
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.GHCR }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Login to another registry
-      # https://github.com/docker/login-action
       - name: Log into ${{ env.REGISTRY }} 📇
         if: ${{ github.event_name != 'pull_request' }}
         uses: docker/login-action@v2
@@ -199,10 +186,8 @@ jobs:
           df -h
           docker system df
 
-      # Build Docker image with Bake
-      # https://github.com/docker/bake-action
       - name: Build / Push image 🐳
-        uses: docker/bake-action@v2
+        uses: docker/bake-action@v4
         with:
           files: |
             docker-bake.hcl
@@ -214,8 +199,8 @@ jobs:
         env:
           PUSH: ${{ fromJson(env.PUSH_IMAGE) }}
 
-      # Cleanup repository
-      - name: Cleanup 🧹
+      # NOTE: More space is required to run the upload-artifact action
+      - name: Cleanup CWD 🧹
         if: ${{ ! fromJson(env.PUSH_IMAGE) }}
         shell: bash
         run: |
@@ -227,8 +212,6 @@ jobs:
           rm -rf texlive
           df -h
 
-      # Upload artifacts
-      # https://github.com/actions/upload-artifact
       - name: Upload artifacts 📚
         if: ${{ ! fromJson(env.PUSH_IMAGE) }}
         uses: actions/upload-artifact@v3
