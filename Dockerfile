@@ -53,7 +53,8 @@ RUN if [ ! -d texlive ] \
   && perl ./install-tl -profile ../texlive.installation.profile --no-interaction \
   && mv TEXLIVE_* ../ \
   && cd .. \
-  && rm -rf texlive
+  && rm -rf texlive \
+  && chmod 1777 /tmp
 
 # Create dummy package with equivs and generate cache
 RUN RELEASE=$(find -name 'TEXLIVE_*' -print0 | sed -e s/[^0-9]//g) \
