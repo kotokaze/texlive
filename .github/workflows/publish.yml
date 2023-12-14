@@ -216,7 +216,7 @@ jobs:
 
       - name: Upload artifacts 📚
         if: ${{ ! fromJson(env.PUSH_IMAGE) }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: TL${{ steps.tl-release.outputs.number }}
           path: texlive.oci
