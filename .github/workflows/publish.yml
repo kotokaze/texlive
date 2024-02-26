@@ -43,7 +43,7 @@ jobs:
 
       - name: Restore cached repository 📦
         id: restore
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: texlive/
           key: rsync-TL${{ steps.get-year.outputs.year }}-${{ github.sha }}
@@ -71,7 +71,7 @@ jobs:
 
       - name: Save repository to cache 💾
         if: ${{ ! startsWith(github.ref, 'refs/tags/v') }}
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: texlive/
           key: rsync-TL${{ steps.tl-release.outputs.number }}-${{ github.sha }}
