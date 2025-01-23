@@ -189,7 +189,7 @@ jobs:
           docker system df
 
       - name: Build / Push image 🐳
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           files: |
             docker-bake.hcl
